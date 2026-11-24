@@ -7,7 +7,9 @@ Runs pymupdf4llm, then repairs the things it gets wrong on many real-world PDFs:
   * inline code (backticks)
   * tables split across a page break
 """
+import os
 import re
+import tempfile
 
 import pymupdf
 import pymupdf4llm
@@ -32,9 +34,10 @@ def _call_to_markdown(path, **opts):
             opts.pop(bad)
 
 
-def _pages_text(path, use_ocr):
+def _pages_text(path, use_ocr, force_ocr=False):
     result = _call_to_markdown(
-        path, page_chunks=True, use_ocr=use_ocr, header=True, footer=True
+        path, page_chunks=True, use_ocr=use_ocr, force_ocr=force_ocr,
+        header=True, footer=True,
     )
     if isinstance(result, str):  # very old versions ignore page_chunks
         return [result]
@@ -336,4 +339,37 @@ def convert(path):
 
     md = re.sub(r"[ \t]+\n", "\n", md)          # trailing spaces
     md = re.sub(r"\n{3,}", "\n\n", md)          # collapse blank lines
+    return md.strip() + "\n"
+
+
+def convert_image(path):
+    """Image (png/jpg/webp/bmp/tiff...) -> Markdown using OCR.
+
+    The image is wrapped in a one-page PDF so the same pymupdf4llm pipeline
+    (layout detection + OCR) is used. Needs `rapidocr` (pip only) or Tesseract.
+    """
+    from PIL import Image, ImageOps  # Pillow ships with streamlit / rapidocr
+
+    with tempfile.TemporaryDirectory() as tmp:
+        # Normalise any format (webp, bmp, tiff, gif, phone photos...) to PNG.
+        png_path = os.path.join(tmp, "image.png")
+        with Image.open(path) as im:
+            im = ImageOps.exif_transpose(im).convert("RGB")
+            im.thumbnail((3000, 3000))  # cap very large photos to save memory
+            im.save(png_path, "PNG")
+
+        with pymupdf.open(png_path) as img:
+            pdf_bytes = img.convert_to_pdf()
+        pdf_path = os.path.join(tmp, "image.pdf")
+        with open(pdf_path, "wb") as f:
+            f.write(pdf_bytes)
+        pages = _pages_text(pdf_path, use_ocr=True, force_ocr=True)
+
+    md = "\n\n".join(pages)
+    md = _clean_noise(md)
+    md = _merge_split_tables(md)
+    md = _fix_bold_spacing(md)
+    md = _tighten_lists(md)
+    md = re.sub(r"[ \t]+\n", "\n", md)
+    md = re.sub(r"\n{3,}", "\n\n", md)
     return md.strip() + "\n"
