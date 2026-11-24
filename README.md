@@ -24,6 +24,22 @@ Designed especially for preparing documents for Large Language Models (LLMs) and
 
 ---
 
+## 💡 Why Convert? Token Savings Breakdown
+
+Uploading a `.md` file instead of a 17-page PDF to a modern AI chatbot (ChatGPT, Claude, or Gemini) saves roughly **5,000 to 26,000 tokens**—a **55% to 87% reduction** in input tokens.
+
+The exact savings depend on how the chatbot processes PDFs under the hood:
+
+| AI Chatbot / Platform | How It Reads Your 17-Page PDF | PDF Input Cost | `.md` Input Cost | Tokens Saved |
+| :--- | :--- | :--- | :--- | :--- |
+| **Claude** (Web / API) | Extracts text + renders all 17 pages as images | ~28,000 – 31,000 | ~3,966 | **~24,000 – 27,000 (~87%)** |
+| **ChatGPT** (GPT-4o / o3 / GPT-5) | Extracts text + renders pages as images for vision | ~15,000 – 22,000 | ~3,966 | **~11,000 – 18,000 (~75–82%)** |
+| **Gemini** (Default / Med res) | Renders all 17 pages natively (~560 tokens/page) | ~9,520 | ~3,966 | **~5,554 (~58%)** |
+| **Gemini** (Low res / Older 2.5) | Renders all 17 pages at low res (~258–280 tokens/page) | ~4,386 – 4,760 | ~3,966 | **~420 – 794 (~10–17%)** |
+| **Text-only tools / Local LLMs** | Strips images and reads only the raw text layer | ~3,700 – 3,900 | ~3,966 | ~0 tokens |
+
+---
+
 ## 📁 Project Structure
 
 ```text
